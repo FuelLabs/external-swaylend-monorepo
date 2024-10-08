@@ -24,10 +24,9 @@ import {
 } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { ACTION_TYPE, useMarketStore } from '@/stores';
-import { formatUnits, getFormattedNumber, getFormattedPrice } from '@/utils';
+import { formatUnits, getFormattedNumber } from '@/utils';
 import { useAccount, useIsConnected } from '@fuels/react';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
-import { useMutationState } from '@tanstack/react-query';
 import BigNumber from 'bignumber.js';
 import { LoaderCircleIcon } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -259,17 +258,25 @@ export const InputDialog = () => {
         break;
       case ACTION_TYPE.REPAY: {
         if (userSupplyBorrow.borrowed.eq(0)) return;
-        changeTokenAmount(
-          BigNumber(
-            finalBalance
-              .plus(
-                BigNumber(0.01).div(
-                  priceData?.prices[marketConfiguration.baseToken.bits] ?? 1
-                )
-              )
-              .toFixed(decimals)
+
+        const userBaseBalance = formatUnits(
+          BigNumber(balance?.toString() ?? 0),
+          decimals
+        );
+
+        if (userSupplyBorrow.borrowed.eq(0)) return;
+
+        const modifiedFinalBalance = finalBalance.plus(
+          BigNumber(0.01).div(
+            priceData?.prices[marketConfiguration.baseToken.bits] ?? 1
           )
         );
+
+        if (userBaseBalance.gte(modifiedFinalBalance)) {
+          changeTokenAmount(BigNumber(modifiedFinalBalance.toFixed(decimals)));
+        } else {
+          changeTokenAmount(BigNumber(userBaseBalance.toFixed(decimals)));
+        }
 
         break;
       }
